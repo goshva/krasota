@@ -67,7 +67,14 @@
   <span id="fabTxt">Следующий</span>
 </button>
 <div class="toast" id="toast"></div>
-
+<div class="sheet" id="sheet">
+  <div class="sheet-backdrop" data-a="sheet-close"></div>
+  <div class="sheet-body">
+    <div class="sheet-title" id="sheetTitle">Выберите номер</div>
+    <div class="sheet-list" id="sheetList"></div>
+    <button class="sheet-cancel" data-a="sheet-close">Отмена</button>
+  </div>
+</div>
 <script src="contacts.js"></script>
 <script src="js/config.js"></script>
 <script src="js/utils.js"></script>
@@ -80,13 +87,5 @@
 <script src="js/export.js"></script>
 <script src="js/voice.js"></script>
 <script src="js/main.js"></script>
-<div class="sheet" id="sheet">
-  <div class="sheet-backdrop" data-a="sheet-close"></div>
-  <div class="sheet-body">
-    <div class="sheet-title" id="sheetTitle">Выберите номер</div>
-    <div class="sheet-list" id="sheetList"></div>
-    <button class="sheet-cancel" data-a="sheet-close">Отмена</button>
-  </div>
-</div>
 </body>
 </html>
