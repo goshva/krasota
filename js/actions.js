@@ -14,10 +14,10 @@ function openPhoneSheet(id, action){
   const cur=(state[id]||{}).p||0;
 
   $('sheetList').innerHTML=options.map(o=>`
-    <button class="sheet-item ${o.idx===cur?'sel':''}" data-sheet-idx="${o.idx}">
+    <a class="sheet-item ${o.idx===cur?'sel':''}" data-sheet-idx="${o.idx}" href="${esc(phoneHref(action,digits(o.phone)))}"${action==='call'?'':' target="_blank" rel="noopener"'}>
       <span class="sheet-num">${o.idx+1}</span>
       <span class="sheet-val">${esc(fmt(o.phone))}</span>
-    </button>`).join('');
+    </a>`).join('');
 
   $('sheet').dataset.id=id;
   $('sheet').dataset.action=action;
@@ -29,7 +29,12 @@ function closeSheet(){
   $('sheet').dataset.action='';
 }
 
-function performPhoneAction(id, action, idx){
+/* прямая ссылка на номер: tel:, WhatsApp, Telegram, MAX */
+function phoneHref(action,d){
+  return {call:'tel:+'+d, wa:'https://wa.me/'+d, tg:'https://t.me/+'+d, max:'https://max.ru/u/+'+d}[action]||'#';
+}
+
+function performPhoneAction(id, action, idx, viaLink){
   const it=items.find(x=>x.id===id); if(!it) return;
   const phone=it.phones[idx]; if(!phone) return;
   const d=digits(phone);
@@ -40,11 +45,11 @@ function performPhoneAction(id, action, idx){
     queuePush(id,{result:s.s?STATUS[s.s].t:'',note:s.n||'',calledAt:s.calledAt});
     pending=id;
     toast('📞 Звонок записан');
-    setTimeout(()=>{ location.href='tel:+'+d; }, 40);
+    if(!viaLink) setTimeout(()=>{ location.href='tel:+'+d; }, 40);
   }else{
     saveState();
     const urls={wa:'https://wa.me/'+d, tg:'https://t.me/+'+d, max:'https://max.ru/u/+'+d};
-    if(urls[action]) window.open(urls[action],'_blank');
+    if(urls[action]&&!viaLink) window.open(urls[action],'_blank');
   }
 
   const card=document.querySelector(`.card[data-id="${CSS.escape(id)}"]`);
@@ -130,8 +135,9 @@ if(sheetEl){
       const id=sheetEl.dataset.id;
       const action=sheetEl.dataset.action;
       const idx=+item.dataset.sheetIdx;
+      // ссылка сама откроет звонок/мессенджер — только записываем и закрываем шторку
       closeSheet();
-      if(id&&action) performPhoneAction(id,action,idx);
+      if(id&&action) performPhoneAction(id,action,idx,true);
     }
   });
 }
