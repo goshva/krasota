@@ -44,3 +44,21 @@ function toast(t){
   clearTimeout(toast._t);
   toast._t=setTimeout(()=>el.classList.remove('show'),1800);
 }
+/* Разбивает строку/массив на отдельные телефоны.
+   Понимает склеенные: "+791001900517985121201179031558860" → 3 номера. */
+function splitPhones(input){
+  if(input==null) return [];
+  if(Array.isArray(input)){
+    const out=[];
+    input.forEach(v=>out.push(...splitPhones(v)));
+    return [...new Set(out.filter(Boolean))];
+  }
+  const s=String(input).trim();
+  if(!s) return [];
+  const re=/(?:\+?7|8)[\s\-()]?\d{3}[\s\-()]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}/g;
+  const found=s.match(re);
+  if(found&&found.length) return [...new Set(found.map(p=>'+'+digits(p)))];
+  const d=digits(s);
+  if(d.length===10||d.length===11) return ['+'+d];
+  return [];
+}

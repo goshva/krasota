@@ -9,13 +9,11 @@ function build(rows){
 
     const c=CONTACTS[key]||{};
     const sheetPhone=pick(row,/^телефон|phone/i);
-    let phones=[...(c.phones||[])];
-    if(sheetPhone&&/\d{6}/.test(sheetPhone)){
-      const d='+'+digits(sheetPhone);
-      if(!phones.includes(d))phones.unshift(d);
-    }
+    // разбиваем склеенные номера из таблицы и из contacts.js, дедуп
+    const fromSheet=splitPhones(sheetPhone);
+    const fromContacts=splitPhones(c.phones||[]);
+    const phones=[...new Set([...fromSheet,...fromContacts])];
 
-    /* данные из таблицы */
     const sheetRes = pick(row,/результат/i);
     const sheetNote= pick(row,/заметка/i);
     const sheetCall= pick(row,/^звонок|called/i);
@@ -23,7 +21,6 @@ function build(rows){
     const resKey=Object.keys(STATUS).find(k=>STATUS[k].t.toLowerCase()===sheetRes.toLowerCase())||'';
     const calledAt=sheetCall?new Date(sheetCall).getTime():0;
 
-    /* мердж: local wins, sheet — фолбэк */
     const local=state[key]||{};
     state[key]={
       s:       local.s||resKey||'',
@@ -33,7 +30,6 @@ function build(rows){
       p:       local.p||0
     };
 
-    /* если локально есть — дослать в таблицу */
     if(local.s&&!resKey)        queuePush(key,{result:STATUS[local.s].t,note:local.n||'',calledAt:local.calledAt||0});
     else if(local.n&&!sheetNote)queuePush(key,{result:local.s?STATUS[local.s].t:'',note:local.n,calledAt:local.calledAt||0});
     else if(local.calledAt&&!calledAt)queuePush(key,{result:local.s?STATUS[local.s].t:'',note:local.n||'',calledAt:local.calledAt});
@@ -50,7 +46,6 @@ function build(rows){
   saveState();
   render();
 }
-
 /* фильтры/счётчики */
 const statusOf=it=>(state[it.id]||{}).s||'';
 function passes(it){
@@ -75,16 +70,32 @@ function counts(){
 
 /* карточка */
 function cardHTML(it,idx){
-  const s=state[it.id]||{},status=s.s||'';
-  const sel=Math.min(s.p||0,Math.max(it.phones.length-1,0));
-  const ph=it.phones[sel],d=ph?digits(ph):'';
+  const s=state[it.id]||{}, status=s.s||'';
+  const phones=it.phones;
+  const sel=Math.min(s.p||0,Math.max(phones.length-1,0));
+  const active=phones[sel]||'';
+  const activeD=active?digits(active):'';
+  const mobiles=phones.filter(p=>isMobile(digits(p)));
+
   const tag=status?`<span class="tag" style="color:${STATUS[status].c};background:${STATUS[status].bg}">${STATUS[status].t}</span>`:'';
   const color=AV[hash(it.id)%AV.length];
-  const alt=it.phones.length>1?`<div class="alt">${it.phones.map((p,j)=>`<button data-a="pick" data-j="${j}" class="${j===sel?'sel':''}">${esc(fmt(p))}</button>`).join('')}</div>`:'';
-  const mobile=it.phones.map(digits).find(isMobile)||'';
-  const waUrl = mobile?'https://wa.me/'+mobile:'';
-  const tgUrl = mobile?'https://t.me/+'+mobile:'';
-  const maxUrl= mobile?'https://max.ru/u/+'+mobile:'';
+
+  const multi=phones.length>1;
+  const idxBadge=multi?`<span class="num-idx">${sel+1}/${phones.length}</span>`:'';
+
+  // звонок: если телефонов >1 — открываем пикер
+  const callA  = multi ? 'call-pick' : 'call';
+  const callHref = multi ? '#' : (active?'tel:+'+activeD:'#');
+
+  // мессенджеры — только мобильные; если мобильных >1, тоже пикер
+  const waA  = mobiles.length>1?'wa-pick':(mobiles.length===1?'wa':null);
+  const tgA  = mobiles.length>1?'tg-pick':(mobiles.length===1?'tg':null);
+  const maxA = mobiles.length>1?'max-pick':(mobiles.length===1?'max':null);
+  const m0 = mobiles[0]?digits(mobiles[0]):'';
+  const waHref  = waA==='wa' ?'https://wa.me/'+m0:'#';
+  const tgHref  = tgA==='tg' ?'https://t.me/+'+m0:'#';
+  const maxHref = maxA==='max'?'https://max.ru/u/+'+m0:'#';
+
   const metaParts=[];
   if(s.calledAt)metaParts.push('📞 '+ago(s.calledAt));
   if(s.ts&&s.ts!==s.calledAt)metaParts.push('✓ '+ago(s.ts));
@@ -96,22 +107,22 @@ function cardHTML(it,idx){
       ${tag}
     </div>
     <div class="phone-row">
-      ${ph?`<a class="num" href="tel:+${d}" data-a="call">${esc(fmt(ph))}</a>`:`<span class="num none">Номер не найден</span>`}
-      ${alt}
+      ${active?`<a class="num" href="tel:+${activeD}" data-a="call">${esc(fmt(active))}</a>${idxBadge}`
+              :`<span class="num none">Номер не найден</span>`}
     </div>
-    ${!ph&&it.note?`<div class="hint">${esc(it.note)} — откройте сайт и запишитесь/напишите там.</div>`:''}
+    ${!active&&it.note?`<div class="hint">${esc(it.note)} — откройте сайт и запишитесь/напишите там.</div>`:''}
     <div class="acts">
-      <a class="btn call ${ph?'':'off'}" href="${ph?'tel:+'+d:'#'}" data-a="call">${IC.phone}${ph?'Позвонить':'Нет номера'}</a>
-      <a class="btn wa" href="${waUrl||'#'}" target="_blank" rel="noopener" title="WhatsApp" ${waUrl?'':'aria-disabled="true"'}>${IC.wa}</a>
-      <a class="btn tg" href="${tgUrl||'#'}" target="_blank" rel="noopener" title="Telegram" ${tgUrl?'':'aria-disabled="true"'}>${IC.tg}</a>
-      <a class="btn max" href="${maxUrl||'#'}" target="_blank" rel="noopener" title="MAX" ${maxUrl?'':'aria-disabled="true"'}>${IC.max}</a>
+      <a class="btn call ${active?'':'off'}" href="${callHref}" data-a="${active?callA:'noop'}">${IC.phone}${active?(multi?'Позвонить · '+(sel+1):'Позвонить'):'Нет номера'}</a>
+      <a class="btn wa"  href="${waHref}"  data-a="${waA||'noop'}"  ${waA?'':'aria-disabled="true"'}  target="${waA==='wa'?'_blank':''}"  rel="noopener" title="WhatsApp">${IC.wa}</a>
+      <a class="btn tg"  href="${tgHref}"  data-a="${tgA||'noop'}"  ${tgA?'':'aria-disabled="true"'}  target="${tgA==='tg'?'_blank':''}"  rel="noopener" title="Telegram">${IC.tg}</a>
+      <a class="btn max" href="${maxHref}" data-a="${maxA||'noop'}" ${maxA?'':'aria-disabled="true"'} target="${maxA==='max'?'_blank':''}" rel="noopener" title="MAX">${IC.max}</a>
     </div>
     <div class="res">${Object.entries(STATUS).map(([k,v])=>`<button data-a="st" data-s="${k}" class="${status===k?'on':''}">${v.t}</button>`).join('')}</div>
     <textarea class="note" data-a="note" rows="1" placeholder="Заметка: ЛПР, время, что сказали…">${esc(s.n||'')}</textarea>
     <div class="meta">
       <a href="${esc(it.site)}" target="_blank" rel="noopener">${IC.ext}${esc(it.id.replace(/^www\./,''))}</a>
       <div class="meta-actions">
-        <button class="meta-btn" data-a="copy" title="Копировать номер" ${ph?'':'aria-disabled="true"'}>${IC.copy}</button>
+        <button class="meta-btn" data-a="copy" title="Копировать номер" ${active?'':'aria-disabled="true"'}>${IC.copy}</button>
         <span>${metaParts.join(' · ')}</span>
       </div>
     </div>
