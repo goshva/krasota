@@ -112,7 +112,7 @@ function cardHTML(it,idx){
     </div>
     ${!active&&it.note?`<div class="hint">${esc(it.note)} — откройте сайт и запишитесь/напишите там.</div>`:''}
     <div class="acts">
-      <a class="btn call ${active?'':'off'}" href="${callHref}" data-a="${active?callA:'noop'}">${IC.phone}${active?(multi?'Позвонить · '+(sel+1):'Позвонить'):'Нет номера'}</a>
+      <a class="btn call ${active?'':'off'}" href="${callHref}" data-a="${active?callA:'noop'}">${IC.phone}${active?(multi?' · '+(sel+1):''):'Нет номера'}</a>
       <a class="btn wa"  href="${waHref}"  data-a="${waA||'noop'}"  ${waA?'':'aria-disabled="true"'}  target="${waA==='wa'?'_blank':''}"  rel="noopener" title="WhatsApp">${IC.wa}</a>
       <a class="btn tg"  href="${tgHref}"  data-a="${tgA||'noop'}"  ${tgA?'':'aria-disabled="true"'}  target="${tgA==='tg'?'_blank':''}"  rel="noopener" title="Telegram">${IC.tg}</a>
       <a class="btn max" href="${maxHref}" data-a="${maxA||'noop'}" ${maxA?'':'aria-disabled="true"'} target="${maxA==='max'?'_blank':''}" rel="noopener" title="MAX">${IC.max}</a>

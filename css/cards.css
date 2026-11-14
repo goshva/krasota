@@ -30,7 +30,7 @@
 .alt button.sel{background:var(--accent-soft);color:var(--accent)}
 
 /* ---------- actions ---------- */
-.acts{display:grid;grid-template-columns:minmax(0,1fr) 48px 48px 48px;gap:8px}
+.acts{display:grid;grid-template-columns: repeat(4, 1fr);gap:8px}
 .btn{height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:8px;
   font-size:15px;font-weight:700;background:var(--surface-2);color:var(--text);transition:transform .12s,background .15s;padding:0 8px}
 .btn:active{transform:scale(.96)}
