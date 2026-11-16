@@ -1,4 +1,4 @@
-const VERSION = 3;                       // ← должно совпадать с manifest.json.version
+const VERSION = 4;                       // ← должно совпадать с manifest.json.version
 const CACHE_NAME = 'krasota-v' + VERSION;
 
 const ASSETS = [

@@ -39,10 +39,10 @@ function ago(ts){
   if(h<24)return h+' ч назад';
   return new Date(ts).toLocaleDateString('ru-RU',{day:'numeric',month:'short'});
 }
-function toast(t){
+function toast(t,ms){
   const el=$('toast');el.textContent=t;el.classList.add('show');
   clearTimeout(toast._t);
-  toast._t=setTimeout(()=>el.classList.remove('show'),1800);
+  toast._t=setTimeout(()=>el.classList.remove("show"),ms||1800);
 }
 /* Разбивает строку/массив на отдельные телефоны.
    Понимает склеенные: "+791001900517985121201179031558860" → 3 номера. */

@@ -92,9 +92,11 @@ function cardHTML(it,idx){
   const tgA  = mobiles.length>1?'tg-pick':(mobiles.length===1?'tg':null);
   const maxA = mobiles.length>1?'max-pick':(mobiles.length===1?'max':null);
   const m0 = mobiles[0]?digits(mobiles[0]):'';
-  const waHref  = waA==='wa' ?'https://wa.me/'+m0:'#';
-  const tgHref  = tgA==='tg' ?'https://t.me/+'+m0:'#';
-  const maxHref = maxA==='max'?'https://max.ru/u/+'+m0:'#';
+  const waHref  = waA==='wa' ?msgHref('wa',m0,it):'#';
+  const tgHref  = tgA==='tg' ?msgHref('tg',m0,it):'#';
+  const maxHref = maxA==='max'?msgHref('max',m0,it):'#';
+  const tpl=tplOf(it.id);
+  const sentLog=lastMsgLog(s.n);
 
   const metaParts=[];
   if(s.calledAt)metaParts.push('📞 '+ago(s.calledAt));
@@ -111,6 +113,11 @@ function cardHTML(it,idx){
               :`<span class="num none">Номер не найден</span>`}
     </div>
     ${!active&&it.note?`<div class="hint">${esc(it.note)} — откройте сайт и запишитесь/напишите там.</div>`:''}
+    ${mobiles.length?`<div class="tpl">
+      <span class="tpl-lbl">Сообщение:</span>
+      ${Object.entries(MSG_TPL).map(([k,v])=>`<button data-a="tpl" data-t="${k}" class="${tpl===k?'on':''}">${v.t}</button>`).join('')}
+    </div>
+    ${sentLog?`<div class="sent">✉ Уже писали — ${esc(sentLog)}</div>`:''}`:''}
     <div class="acts">
       <a class="btn call ${active?'':'off'}" href="${callHref}" data-a="${active?callA:'noop'}">${IC.phone}${active?(multi?' · '+(sel+1):''):'Нет номера'}</a>
       <a class="btn wa"  href="${waHref}"  data-a="${waA||'noop'}"  ${waA?'':'aria-disabled="true"'}  target="${waA==='wa'?'_blank':''}"  rel="noopener" title="WhatsApp">${IC.wa}</a>

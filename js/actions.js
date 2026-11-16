@@ -10,6 +10,7 @@ function openPhoneSheet(id, action){
 
   const titles={call:'Кому позвонить?',wa:'WhatsApp — на какой номер?',
                 tg:'Telegram — на какой номер?',max:'MAX — на какой номер?'};
+  $('sheet').dataset.id=id;
   $('sheetTitle').textContent=titles[action]||'Выберите номер';
   const cur=(state[id]||{}).p||0;
 
@@ -31,7 +32,9 @@ function closeSheet(){
 
 /* прямая ссылка на номер: tel:, WhatsApp, Telegram, MAX */
 function phoneHref(action,d){
-  return {call:'tel:+'+d, wa:'https://wa.me/'+d, tg:'https://t.me/+'+d, max:'https://max.ru/u/+'+d}[action]||'#';
+  if(action==='call') return 'tel:+'+d;
+  const id=$('sheet').dataset.id;
+  return msgHref(action,d,items.find(x=>x.id===id));
 }
 
 function performPhoneAction(id, action, idx, viaLink){
@@ -48,8 +51,9 @@ function performPhoneAction(id, action, idx, viaLink){
     if(!viaLink) setTimeout(()=>{ location.href='tel:+'+d; }, 40);
   }else{
     saveState();
-    const urls={wa:'https://wa.me/'+d, tg:'https://t.me/+'+d, max:'https://max.ru/u/+'+d};
-    if(urls[action]&&!viaLink) window.open(urls[action],'_blank');
+    if(!viaLink) window.open(msgHref(action,d,it),'_blank');
+    onMessengerClick(id,action,phone);   // текст в буфер + отметка в таблице (перерисует карточку)
+    return;
   }
 
   const card=document.querySelector(`.card[data-id="${CSS.escape(id)}"]`);
@@ -81,7 +85,18 @@ $('list').addEventListener('click',e=>{
     return;
   }
 
-  if(a==='wa'||a==='tg'||a==='max') return;   // переход по href
+  if(a==='wa'||a==='tg'||a==='max'){          // переход по href + текст/отметка
+    const m=it.phones.find(p=>isMobile(digits(p)));
+    onMessengerClick(id,a,m);
+    return;
+  }
+
+  if(a==='tpl'){
+    e.preventDefault();
+    s.tpl=el.dataset.t; saveState();
+    card.outerHTML=cardHTML(it,0);
+    return;
+  }
 
   if(a==='copy'){
     e.preventDefault();

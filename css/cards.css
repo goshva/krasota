@@ -92,3 +92,11 @@ a.sheet-item{text-decoration:none;color:inherit}
 /* ---------- бейдж "2/3" у номера ---------- */
 .num-idx{font-size:11px;font-weight:700;padding:4px 8px;border-radius:999px;
   background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+/* ---------- шаблон сообщения ---------- */
+.tpl{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:-6px}
+.tpl-lbl{font-size:12px;font-weight:600;color:var(--soft)}
+.tpl button{font-size:12.5px;font-weight:700;padding:6px 10px;border-radius:10px;
+  background:transparent;border:1px solid var(--line);color:var(--muted)}
+.tpl button.on{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.sent{font-size:12.5px;font-weight:600;color:var(--amber);background:var(--amber-soft);
+  padding:7px 10px;border-radius:10px;margin-bottom:-6px}
