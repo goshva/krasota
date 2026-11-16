@@ -30,7 +30,7 @@
   .list{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 @media (max-width:380px){
-  .acts{grid-template-columns:minmax(0,1fr) 44px 44px 44px;gap:6px}
+  /*.acts{grid-template-columns:minmax(0,1fr) 44px 44px 44px;gap:6px}*/
   .btn.call{font-size:13px}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
