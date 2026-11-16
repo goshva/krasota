@@ -45,3 +45,7 @@
 .chip.on{background:var(--text);color:var(--bg);border-color:var(--text)}
 .chip.on i{color:inherit;opacity:.7}
 .dot{width:8px;height:8px;border-radius:50%}
+/* ---------- тематика (вкладки таблицы) ---------- */
+.chips[hidden]{display:none}
+.themes{padding:10px 0 0}
+.themes .chip{height:32px;font-size:13px;font-weight:700}

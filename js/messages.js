@@ -37,6 +37,7 @@ function msgText(it){
 /* ссылка на чат: WhatsApp — с текстом; Telegram — по номеру (текст в буфер);
    MAX не открывает чат по номеру — открываем MAX, текст в буфер */
 function msgHref(action,d,it){
+  if(!isBeautyTheme())it=null;                 // шаблоны — только для бьюти
   if(action==='wa')return 'https://wa.me/'+d+(it?'?text='+encodeURIComponent(msgText(it)):'');
   if(action==='tg')return 'https://t.me/+'+d;
   if(action==='max')return 'https://web.max.ru/';
@@ -66,6 +67,7 @@ function lastMsgLog(note){
 
 /* вызывается при клике по кнопке мессенджера (в карточке или в шторке) */
 function onMessengerClick(id,action,phone){
+  if(!isBeautyTheme()) return;                 // не бьюти: просто открыть чат
   const it=items.find(x=>x.id===id); if(!it) return;
   const s=st(id);
   const text=msgText(it);

@@ -9,7 +9,7 @@ function loadData(){
     if(done)return;done=true;delete window[cb];
     $('refreshBtn').classList.remove('spin');
     $('err').textContent=msg;$('err').classList.add('show');
-    if(!items.length)build(Object.keys(CONTACTS).map(k=>({'сайт':'https://'+k})));
+    if(!items.length&&isBeautyTheme())build(Object.keys(CONTACTS).map(k=>({'сайт':'https://'+k})));
   };
   const t=setTimeout(()=>fail('Таблица не ответила за 15 секунд — показываю сохранённый список.'),15000);
 
@@ -25,7 +25,7 @@ function loadData(){
   };
 
   const s=document.createElement('script');
-  s.src=API_URL+'?callback='+cb+'&t='+Date.now();
+  s.src=API_URL+'?callback='+cb+(isBeautyTheme()?'':'&sheet='+encodeURIComponent(theme))+'&t='+Date.now();
   s.onerror=()=>{clearTimeout(t);fail('Не удалось загрузить таблицу — показываю сохранённый список.')};
   document.body.appendChild(s);
 }

@@ -16,8 +16,15 @@ const COL = {
 
 /* ---------- GET: отдаём все строки как JSON(P) ---------- */
 function doGet(e) {
-  const sh = getSheet();
-  if (!sh) return out({ error: 'Лист не найден: ' + SHEET_NAME }, e);
+  const p = (e && e.parameter) || {};
+  // список вкладок для выбора тематики на сайте
+  if (p.sheets) {
+    const names = SpreadsheetApp.getActiveSpreadsheet().getSheets()
+      .filter(s => !s.isSheetHidden()).map(s => s.getName());
+    return out({ sheets: names }, e);
+  }
+  const sh = getSheet(p.sheet);
+  if (!sh) return out({ error: 'Лист не найден: ' + (p.sheet || SHEET_NAME) }, e);
 
   const values = sh.getDataRange().getValues();
   if (values.length < 2) return out([], e);
@@ -35,7 +42,7 @@ function doGet(e) {
 function doPost(e) {
   try {
     const body = JSON.parse(e.postData.contents);
-    const sh = getSheet();
+    const sh = getSheet(body.sheet);
     if (!sh) return out({ error: 'Лист не найден' }, e);
 
     let values = sh.getDataRange().getValues();
@@ -82,8 +89,9 @@ function doPost(e) {
 }
 
 /* ---------- helpers ---------- */
-function getSheet() {
+function getSheet(name) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (name) return ss.getSheetByName(String(name)); // вкладка тематики («Еда», «Другое»…)
   return ss.getSheetByName(SHEET_NAME) || ss.getSheets()[0];
 }
 

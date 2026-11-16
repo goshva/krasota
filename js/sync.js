@@ -12,9 +12,11 @@ function queuePush(key,patch){
 async function flushOutbox(){
   if(!outbox.size)return;
   const entries=[...outbox.entries()];
+  const sheet=isBeautyTheme()?undefined:theme;   // вкладка на момент отправки
   for(const [key,patch] of entries){
     const body=JSON.stringify({
       key,
+      sheet,
       result:   patch.result,
       note:     patch.note,
       calledAt: patch.calledAt

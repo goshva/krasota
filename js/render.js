@@ -8,6 +8,8 @@ function build(rows){
     if(seen.has(key))return;
 
     const c=CONTACTS[key]||{};
+    // в бьюти-вкладку случайно попало не бьюти (кафе, гостиница…) — не показываем
+    if(isBeautyTheme()&&!c.name&&!isBeautyCategory(pick(row,/^(category|категория)$/i)))return;
     const sheetPhone=pick(row,/^телефон|phone/i);
     // разбиваем склеенные номера из таблицы и из contacts.js, дедуп
     const fromSheet=splitPhones(sheetPhone);
@@ -119,7 +121,7 @@ function cardHTML(it,idx){
               :`<span class="num none">Номер не найден</span>`}
     </div>
     ${!active&&it.note?`<div class="hint">${esc(it.note)} — откройте сайт и запишитесь/напишите там.</div>`:''}
-    ${mobiles.length?`<div class="tpl">
+    ${mobiles.length&&isBeautyTheme()?`<div class="tpl">
       <span class="tpl-lbl">Сообщение:</span>
       ${Object.entries(MSG_TPL).map(([k,v])=>`<button data-a="tpl" data-t="${k}" class="${tpl===k?'on':''}">${v.t}</button>`).join('')}
     </div>
