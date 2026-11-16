@@ -1,4 +1,4 @@
-const VERSION = 4;                       // ← должно совпадать с manifest.json.version
+const VERSION = 5;                       // ← должно совпадать с manifest.json.version
 const CACHE_NAME = 'krasota-v' + VERSION;
 
 const ASSETS = [
@@ -11,7 +11,7 @@ const ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => Promise.allSettled(ASSETS.map((u) => cache.add(u))))
+      .then((cache) => Promise.allSettled(ASSETS.map((u) => cache.add(new Request(u, { cache: 'reload' })))))
       .then(() => self.skipWaiting())
   );
 });
@@ -44,6 +44,21 @@ self.addEventListener('fetch', (event) => {
   // manifest.json — всегда из сети, иначе не увидим новую версию
   if (url.pathname.endsWith('/manifest.json') || url.pathname.endsWith('manifest.json')) {
     event.respondWith(fetch(event.request, { cache: 'no-store' }));
+    return;
+  }
+
+  // страница, js и css — сначала сеть (иначе после деплоя застревает старый код), кэш — только офлайн
+  if (url.origin === self.location.origin &&
+      (event.request.mode === 'navigate' || /\.(html|js|css)$/.test(url.pathname))) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-cache' }).then((resp) => {
+        if (resp.ok) {
+          const copy = resp.clone();
+          caches.open(CACHE_NAME).then((c) => c.put(event.request, copy));
+        }
+        return resp;
+      }).catch(() => caches.match(event.request).then((c) => c || caches.match('./index.html')))
+    );
     return;
   }
 
