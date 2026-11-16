@@ -34,12 +34,18 @@ function build(rows){
     else if(local.n&&!sheetNote)queuePush(key,{result:local.s?STATUS[local.s].t:'',note:local.n,calledAt:local.calledAt||0});
     else if(local.calledAt&&!calledAt)queuePush(key,{result:local.s?STATUS[local.s].t:'',note:local.n||'',calledAt:local.calledAt});
 
+    // строки из Яндекс Карт (davydovserg/Search): название в «key» (или «name»), район в «note»
+    const rowKey =pick(row,/^key$/i);
+    const rowName=pick(row,/^(name|название)$/i)||(/^(https?:\/\/|[\w-]+\.[\w.-]+\/)/i.test(rowKey)?'':rowKey);
+    const name=cleanName(c.name||rowName,key);
+    const area=c.name?'':pick(row,/^note$/i);
+    const sub=[c.category||pick(row,/^(category|категория)$/i),c.address||pick(row,/^(address|адрес)$/i),area].filter(Boolean).join(' · ');
     seen.set(key,{
       id:key,i,site,phones,
-      name:cleanName(c.name,key),
-      sub:[c.category,c.address].filter(Boolean).join(' · '),
+      name,
+      sub,
       note:c.note||'',
-      search:(cleanName(c.name,key)+' '+[c.category,c.address].filter(Boolean).join(' ')+' '+key+' '+phones.map(p=>digits(p)+' '+fmt(p)).join(' ')).toLowerCase()
+      search:(name+' '+sub+' '+key+' '+phones.map(p=>digits(p)+' '+fmt(p)).join(' ')).toLowerCase()
     });
   });
   items=[...seen.values()];
