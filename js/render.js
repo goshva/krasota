@@ -1,5 +1,7 @@
 /* Построение списка и HTML карточек */
 function build(rows){
+  const hadItems = items.length > 0;
+  const scrollY = (typeof window !== 'undefined' && window.scrollY) || 0;
   const seen=new Map();
   rows.forEach((row,i)=>{
     const site=pick(row,/^(сайт|site|url)$/i)||pick(row,/сайт|site|url/i);
@@ -8,10 +10,8 @@ function build(rows){
     if(seen.has(key))return;
 
     const c=CONTACTS[key]||{};
-    // в бьюти-вкладку случайно попало не бьюти (кафе, гостиница…) — не показываем
     if(isBeautyTheme()&&!c.name&&!isBeautyCategory(pick(row,/^(category|категория)$/i)))return;
     const sheetPhone=pick(row,/^телефон|phone/i);
-    // разбиваем склеенные номера из таблицы и из contacts.js, дедуп
     const fromSheet=splitPhones(sheetPhone);
     const fromContacts=splitPhones(c.phones||[]);
     const phones=[...new Set([...fromSheet,...fromContacts])];
@@ -36,7 +36,6 @@ function build(rows){
     else if(local.n&&!sheetNote)queuePush(key,{result:local.s?STATUS[local.s].t:'',note:local.n,calledAt:local.calledAt||0});
     else if(local.calledAt&&!calledAt)queuePush(key,{result:local.s?STATUS[local.s].t:'',note:local.n||'',calledAt:local.calledAt});
 
-    // строки из Яндекс Карт (davydovserg/Search): название в «key» (или «name»), район в «note»
     const rowKey =pick(row,/^key$/i);
     const rowName=pick(row,/^(name|название)$/i)||(/^(https?:\/\/|[\w-]+\.[\w.-]+\/)/i.test(rowKey)?'':rowKey);
     const name=cleanName(c.name||rowName,key);
@@ -52,7 +51,11 @@ function build(rows){
   });
   items=[...seen.values()];
   saveState();
-  render();
+  if (typeof saveItemsCache === 'function') saveItemsCache();
+  render(hadItems);
+  if (scrollY > 0) {
+    requestAnimationFrame(()=>{ try{ window.scrollTo(0, scrollY); }catch(e){} });
+  }
 }
 /* фильтры/счётчики */
 const statusOf=it=>(state[it.id]||{}).s||'';
@@ -144,7 +147,7 @@ function cardHTML(it,idx){
   </article>`;
 }
 
-function render(){
+function render(noAnim){
   counts();
   const q=query.toLowerCase(),qd=query.replace(/\D/g,'');
   let list=items.filter(it=>passes(it)&&(!q||it.search.includes(q)||(qd.length>=3&&it.search.includes(qd))));
@@ -152,6 +155,9 @@ function render(){
   $('list').innerHTML=list.length?list.map(cardHTML).join('')
     :`<div class="empty">${IC.empty}<div>${query?'Ничего не найдено':'Здесь пока пусто'}</div></div>`;
   $('list').querySelectorAll('.note').forEach(autosize);
+  if (noAnim) {
+    $('list').querySelectorAll('.card').forEach(c=>{c.style.animation='none'});
+  }
   const next=nextItem();
   $('fab').hidden=!next;
   if(next)$('fabTxt').innerHTML=`Следующий <small>${esc(next.name.slice(0,22))}</small>`;

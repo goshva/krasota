@@ -1,1 +1,3 @@
 watch-pages.sh
+# PWA backup files
+*.bak.*
