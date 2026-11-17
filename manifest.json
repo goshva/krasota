@@ -1,7 +1,7 @@
 {
   "name": "Обзвон салонов Красота",
   "short_name": "Красота",
-  "version": 5,
+  "version": 6,
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
