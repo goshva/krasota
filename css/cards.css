@@ -100,3 +100,13 @@ a.sheet-item{text-decoration:none;color:inherit}
 .tpl button.on{background:var(--accent-soft);color:var(--accent);border-color:transparent}
 .sent{font-size:12.5px;font-weight:600;color:var(--amber);background:var(--amber-soft);
   padding:7px 10px;border-radius:10px;margin-bottom:-6px}
+
+/* ---------- подсветка карточки, открытой по прямой ссылке ---------- */
+.card.hl{
+  box-shadow:0 0 0 3px var(--accent), var(--shadow);
+  animation:pulseHl 1.2s ease-in-out 2;
+}
+@keyframes pulseHl{
+  0%,100%{box-shadow:0 0 0 3px var(--accent), var(--shadow)}
+  50%    {box-shadow:0 0 0 6px var(--accent-soft), var(--shadow)}
+}

@@ -140,6 +140,7 @@ function cardHTML(it,idx){
     <div class="meta">
       <a href="${esc(it.site)}" target="_blank" rel="noopener">${IC.ext}${esc(it.id.replace(/^www\./,''))}</a>
       <div class="meta-actions">
+        <button class="meta-btn" data-a="share" title="Ссылка на карточку" aria-label="Ссылка на карточку"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>
         <button class="meta-btn" data-a="copy" title="Копировать номер" ${active?'':'aria-disabled="true"'}>${IC.copy}</button>
         <span>${metaParts.join(' · ')}</span>
       </div>

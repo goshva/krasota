@@ -98,6 +98,12 @@ $('list').addEventListener('click',e=>{
     return;
   }
 
+  if(a==='share'){
+    e.preventDefault();
+    copyCardLink(id);
+    return;
+  }
+
   if(a==='copy'){
     e.preventDefault();
     const ph=it.phones[s.p||0]; if(!ph) return;
@@ -157,3 +163,60 @@ if(sheetEl){
   });
 }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeSheet(); });
+/* ---------- ПРЯМЫЕ ССЫЛКИ НА КАРТОЧКУ ----------
+   URL: location.origin + location.pathname + '#card=' + encodeURIComponent(id)
+   id — ключ из data-id карточки (it.id). */
+
+function cardUrl(id){
+  return location.origin + location.pathname + '#card=' + encodeURIComponent(id);
+}
+
+function copyCardLink(id){
+  const url = cardUrl(id);
+  const p = copyText(url);
+  Promise.resolve(p).then(ok => {
+    if (ok) toast('Ссылка скопирована');
+    else   toast(url, 6000);          // fallback: показать URL, если clipboard недоступен
+  });
+  // адресная строка тоже становится ссылкой на карточку — удобно копировать из браузера
+  try { history.replaceState(null, '', url); } catch(e){}
+}
+
+function scrollToCardById(id, highlight){
+  const el = document.querySelector('.card[data-id="' + CSS.escape(id) + '"]');
+  if (!el) return false;
+  el.scrollIntoView({ behavior:'smooth', block:'center' });
+  if (highlight !== false) {
+    el.classList.add('hl');
+    setTimeout(() => el.classList.remove('hl'), 2500);
+  }
+  return true;
+}
+
+let __lastHandledHash = '';
+function handleCardHash(){
+  const m = location.hash.match(/^#card=([^&]+)/);
+  if (!m) return;
+  const id = decodeURIComponent(m[1]);
+  if (!id) return;
+  if (!items.length) return;
+  if (location.hash === __lastHandledHash) return;
+
+  const visible = items.some(it => it.id === id && passes(it));
+  if (!visible) {
+    filter = 'all';
+    query = '';
+    const q = $('q'); if (q) q.value = '';
+    const sb = $('searchBox'); if (sb) sb.classList.remove('has');
+    render();
+  }
+  setTimeout(() => {
+    if (scrollToCardById(id)) __lastHandledHash = location.hash;
+  }, 120);
+}
+
+window.addEventListener('hashchange', handleCardHash);
+window.addEventListener('load', () => {
+  // данные могут прийти из кэша (быстро) или из сети (1–3 с) — пробуем несколько раз
+  [150, 600, 1500, 3500].forEach(t => setTimeout(handleCardHash, t));
+});

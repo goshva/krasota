@@ -1,4 +1,4 @@
-const VERSION = 3;
+const VERSION = 5;
 const CACHE_NAME = 'krasota-v' + VERSION;
 
 const ASSETS = [

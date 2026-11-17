@@ -49,3 +49,43 @@
 .chips[hidden]{display:none}
 .themes{padding:10px 0 0}
 .themes .chip{height:32px;font-size:13px;font-weight:700}
+
+/* ---------- схлопывание фильтров: точки + счётчик, раскрыт только активный ---------- */
+
+/* цвет точек по data-f (без inline-стилей) */
+.chip[data-f="left"]     .dot{background:var(--text)}
+.chip[data-f="callback"] .dot{background:var(--amber)}
+.chip[data-f="noanswer"] .dot{background:var(--blue)}
+.chip[data-f="interest"] .dot{background:var(--call)}
+.chip[data-f="refused"]  .dot{background:var(--red)}
+.chip[data-f="nophone"]  .dot{background:var(--soft)}
+.chip[data-f="all"]      .dot{background:var(--muted)}
+
+/* на активном чипе dot — цвета фона, чтобы не сливаться с тёмной подложкой */
+.chip.on .dot{background:var(--bg) !important}
+
+/* label скрыт, пока чип не активен */
+.chip-label{
+  display:inline-block;
+  max-width:0;
+  overflow:hidden;
+  opacity:0;
+  transition:max-width .22s ease, opacity .18s ease;
+  white-space:nowrap;
+  vertical-align:middle;
+}
+.chip.on .chip-label{
+  max-width:200px;
+  opacity:1;
+}
+
+/* схлопнутый чип — компактнее */
+.chip:not(.on){
+  padding:0 10px;
+  gap:6px;
+  font-size:12px;
+}
+.chip:not(.on) i{
+  font-size:12px;
+  min-width:auto;
+}
