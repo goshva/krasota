@@ -1,103 +1,162 @@
-/* PWA: регистрация SW, сравнение версий, баннер обновления. */
+/* PWA update manager: compare installed SW with manifest and reliably apply updates. */
 (function () {
   'use strict';
+  if (!('serviceWorker' in navigator)) return;
 
   var CHECK_MS = 60 * 1000;
+  var registration = null;
+  var pendingWorker = null;
+  var updateRequested = false;
+  var reloading = false;
 
-  window.updated = window.updated || function (info) {
-    console.info('[PWA] v' + info.from + ' → v' + info.to);
+  function showUpdate(info) {
     if (document.getElementById('pwa-update-banner')) return;
     var bar = document.createElement('div');
     bar.id = 'pwa-update-banner';
     bar.style.cssText = [
-      'position:fixed','left:0','right:0','bottom:0','z-index:99999',
-      'background:var(--surface,#fff)','color:var(--text,#111)',
-      'padding:12px 16px','font:14px/1.4 Manrope,system-ui,sans-serif',
+      'position:fixed','left:12px','right:12px','bottom:calc(12px + env(safe-area-inset-bottom,0px))',
+      'z-index:99999','background:var(--surface,#fff)','color:var(--text,#111)',
+      'padding:14px 16px','font:14px/1.4 Manrope,system-ui,sans-serif',
       'display:flex','justify-content:space-between','align-items:center','gap:12px',
-      'box-shadow:0 -2px 12px rgba(0,0,0,.15)',
-      'border-top:1px solid var(--line,#ddd)'
+      'box-shadow:0 8px 28px rgba(0,0,0,.22)','border:1px solid var(--line,#ddd)',
+      'border-radius:16px'
     ].join(';');
-    bar.innerHTML =
-      '<span>Доступна версия v' + info.to + ' (у вас v' + info.from + ').</span>' +
-      '<button id="pwa-update-btn" style="background:var(--text,#111);color:var(--bg,#fff);' +
-      'border:0;border-radius:10px;padding:8px 14px;cursor:pointer;' +
-      'font:inherit;font-weight:700">Обновить</button>';
+    var message = document.createElement('span');
+    message.textContent = 'Доступна версия v' + info.to + ' (у вас v' + info.from + ').';
+    var button = document.createElement('button');
+    button.id = 'pwa-update-btn';
+    button.type = 'button';
+    button.textContent = 'Обновить';
+    button.style.cssText = 'background:var(--accent,#b4426b);color:#fff;border:0;border-radius:10px;padding:9px 15px;cursor:pointer;font:inherit;font-weight:800;white-space:nowrap';
+    button.addEventListener('click', applyUpdate);
+    bar.appendChild(message);
+    bar.appendChild(button);
     document.body.appendChild(bar);
-    document.getElementById('pwa-update-btn').onclick = function () {
-      var w = info.worker || pendingWorker;
-      if (w && w.postMessage) w.postMessage({ type: 'SKIP_WAITING' });
-      else window.location.reload();
-    };
-  };
+  }
 
-  if (!('serviceWorker' in navigator)) return;
+  // Kept as a public hook because js/pwa-refresh.js wraps this callback.
+  window.updated = function (info) { showUpdate(info); };
 
-  var pendingWorker = null;
-
-  function askSwVersion() {
+  function askVersion(worker) {
     return new Promise(function (resolve) {
-      var sw = navigator.serviceWorker.controller;
-      if (!sw) return resolve(null);
-      var ch = new MessageChannel();
-      var t = setTimeout(function () { resolve(null); }, 2000);
-      ch.port1.onmessage = function (e) {
-        clearTimeout(t);
-        resolve(e.data && e.data.version != null ? Number(e.data.version) : null);
+      if (!worker) return resolve(null);
+      var channel = new MessageChannel();
+      var timer = setTimeout(function () { resolve(null); }, 2500);
+      channel.port1.onmessage = function (event) {
+        clearTimeout(timer);
+        resolve(event.data && Number.isFinite(Number(event.data.version)) ? Number(event.data.version) : null);
+        channel.port1.close();
       };
-      sw.postMessage({ type: 'GET_VERSION' }, [ch.port2]);
+      worker.postMessage({ type: 'GET_VERSION' }, [channel.port2]);
     });
   }
 
-  function fetchManifestVersion() {
-    return fetch('manifest.json?_=' + Date.now(), { cache: 'no-store' })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (m) { return m && m.version != null ? Number(m.version) : null; })
-      .catch(function () { return null; });
+  function remoteVersion() {
+    return fetch('./manifest.json?_=' + Date.now(), { cache: 'no-store' })
+      .then(function (response) {
+        if (!response.ok) throw new Error('manifest HTTP ' + response.status);
+        return response.json();
+      })
+      .then(function (manifest) {
+        var version = Number(manifest && manifest.version);
+        if (!Number.isFinite(version)) throw new Error('manifest version missing');
+        return version;
+      });
   }
 
   function checkVersion() {
-    if (!navigator.serviceWorker.controller) return Promise.resolve(null);
-    return Promise.all([askSwVersion(), fetchManifestVersion()]).then(function (r) {
-      var installed = r[0], remote = r[1];
-      if (installed == null || remote == null) return null;
-      if (remote <= installed) return null;
-      return navigator.serviceWorker.getRegistration().then(function (reg) {
-        pendingWorker = (reg && (reg.waiting || reg.installing)) || null;
-        window.updated({ from: installed, to: remote, worker: pendingWorker });
-        return { from: installed, to: remote };
-      });
-    }).catch(function () { return null; });
+    if (!registration || !navigator.serviceWorker.controller) return Promise.resolve();
+    return Promise.all([askVersion(navigator.serviceWorker.controller), remoteVersion()])
+      .then(function (versions) {
+        var installed = versions[0], remote = versions[1];
+        if (installed == null || remote <= installed) return;
+        pendingWorker = registration.waiting || pendingWorker;
+        // A newer manifest may arrive just before the worker finishes installing.
+        if (pendingWorker) window.updated({ from: installed, to: remote, worker: pendingWorker });
+        else registration.update().then(function () {
+          pendingWorker = registration.waiting || pendingWorker;
+          if (pendingWorker) window.updated({ from: installed, to: remote, worker: pendingWorker });
+        }).catch(function (error) { console.warn('[PWA] update check failed', error); });
+      })
+      .catch(function (error) { console.warn('[PWA] version check failed', error); });
   }
 
-  window.__pwaCheckVersion = checkVersion;
-  window.__pwaPendingWorker = function () { return pendingWorker; };
+  function applyUpdate() {
+    if (updateRequested) return;
+    updateRequested = true;
+    var button = document.getElementById('pwa-update-btn');
+    if (button) { button.disabled = true; button.textContent = 'Обновляем…'; }
+
+    function activate(worker) {
+      if (!worker) {
+        updateRequested = false;
+        if (button) { button.disabled = false; button.textContent = 'Повторить'; }
+        return;
+      }
+      pendingWorker = worker;
+      worker.postMessage({ type: 'SKIP_WAITING' });
+      setTimeout(function () {
+        if (!reloading && navigator.serviceWorker.controller && registration && !registration.waiting) {
+          // controllerchange is normally first; this is a recovery path for browsers
+          // that completed activation before our listener was attached.
+          window.location.reload();
+        } else if (!reloading) {
+          updateRequested = false;
+          if (button) { button.disabled = false; button.textContent = 'Повторить'; }
+        }
+      }, 10000);
+    }
+
+    if (registration && registration.waiting) return activate(registration.waiting);
+    if (registration) {
+      registration.update().then(function () {
+        if (registration.waiting) activate(registration.waiting);
+        else {
+          updateRequested = false;
+          if (button) { button.disabled = false; button.textContent = 'Обновить'; }
+        }
+      }).catch(function (error) {
+        console.warn('[PWA] cannot install update', error);
+        updateRequested = false;
+        if (button) { button.disabled = false; button.textContent = 'Повторить'; }
+      });
+    }
+  }
+
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (updateRequested && !reloading) {
+      reloading = true;
+      window.location.reload();
+    }
+  });
 
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('service-worker.js')
+    navigator.serviceWorker.register('./service-worker.js')
       .then(function (reg) {
+        registration = reg;
+        reg.addEventListener('updatefound', function () {
+          var worker = reg.installing;
+          if (!worker) return;
+          worker.addEventListener('statechange', function () {
+            if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+              pendingWorker = reg.waiting || worker;
+              checkVersion();
+            }
+          });
+        });
         reg.update().catch(function () {});
-        setInterval(function () { reg.update().catch(function () {}); }, CHECK_MS);
-        setTimeout(checkVersion, 1000);
-        setInterval(checkVersion, CHECK_MS);
-
+        checkVersion();
+        setInterval(function () {
+          reg.update().catch(function () {});
+          checkVersion();
+        }, CHECK_MS);
         document.addEventListener('visibilitychange', function () {
           if (document.visibilityState === 'visible') {
             reg.update().catch(function () {});
             checkVersion();
           }
         });
-
-        reg.addEventListener('updatefound', function () {
-          var nw = reg.installing;
-          if (!nw) return;
-          nw.addEventListener('statechange', function () {
-            if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-              pendingWorker = reg.waiting || nw;
-              checkVersion();
-            }
-          });
-        });
       })
-      .catch(function (err) { console.warn('[PWA] register failed', err); });
+      .catch(function (error) { console.warn('[PWA] registration failed', error); });
   });
 })();
