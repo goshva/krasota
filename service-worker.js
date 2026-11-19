@@ -3,6 +3,7 @@ const VERSION = 6;
 const CACHE_NAME = 'krasota-v' + VERSION;
 const CACHE_PREFIX = 'krasota-';
 const ASSETS = [
+  './css/mobile-first.css',
   './', './index.html', './manifest.json', './icons/icon.svg',
   './icons/icon-192x192.png', './icons/icon-512x512.png',
   './css/base.css', './css/layout.css', './css/cards.css', './css/controls.css',
