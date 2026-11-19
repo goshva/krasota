@@ -12,7 +12,9 @@ const ASSETS = [
   './js/storage.js', './js/sync.js', './js/themes.js', './js/api.js',
   './js/messages.js', './js/render.js', './js/actions.js', './js/ui.js',
   './js/export.js', './js/voice.js', './js/main.js'
-];
+
+  './css/mobile-layout-fix.css',
+  './js/layout-audit.js',];
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {

@@ -1,0 +1,72 @@
+/* Krasota mobile layout correction: prevent page-level horizontal overflow. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { width: 100%; max-width: 100%; min-width: 0; }
+html { overflow-x: clip; }
+body { overflow-x: clip; }
+.wrap { width: 100%; max-width: 1180px; min-width: 0; }
+
+.head > .wrap, main.wrap { min-width: 0; max-width: 100%; }
+.bar { display: flex; width: 100%; min-width: 0; gap: clamp(5px, 1.8vw, 10px); }
+.ring { flex: 0 0 42px; width: 42px; height: 42px; }
+.ring svg { width: 100%; height: 100%; }
+.ttl { flex: 1 1 0; min-width: 0; overflow: hidden; }
+.ttl h1 { min-width: 0; font-size: clamp(14px, 4vw, 19px); overflow-wrap: anywhere; }
+.ttl p { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.icon-btn { flex: 0 0 40px; width: 40px; min-width: 40px; height: 40px; }
+
+.search { display: flex; width: 100%; max-width: 100%; min-width: 0; }
+.search input { flex: 1 1 auto; width: 1%; min-width: 0; font-size: 16px; }
+.search .x, .search .mic { flex: 0 0 36px; width: 36px; min-width: 36px; }
+
+.chips { display: flex; flex-wrap: nowrap; min-width: 0; max-width: 100%;
+  overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: 0 0 auto; white-space: nowrap; }
+
+main.wrap, .list, .card, .c-top, .c-name, .phone-row, .acts, .res { min-width: 0; max-width: 100%; }
+.list { width: 100%; }
+.card { width: 100%; overflow: hidden; }
+.c-top { display: flex; align-items: flex-start; }
+.c-name { flex: 1 1 0; overflow-wrap: anywhere; }
+.c-name h3, .c-name p, .num { overflow-wrap: anywhere; word-break: break-word; }
+.phone-row { display: flex; flex-wrap: wrap; }
+.num { min-width: 0; max-width: 100%; }
+.acts { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, .7fr)); gap: 6px; }
+.acts > *, .res > * { min-width: 0; max-width: 100%; }
+.btn { min-width: 0; max-width: 100%; padding-left: 4px; padding-right: 4px; white-space: normal; }
+.res { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.res button { min-height: 42px; height: auto; white-space: normal; }
+.note { width: 100%; min-width: 0; max-width: 100%; font-size: 16px; }
+
+.fab { max-width: calc(100vw - 32px); }
+.toast { max-width: calc(100vw - 32px); }
+.sheet, .sheet-body { width: 100%; max-width: 100%; min-width: 0; }
+.sheet-body { max-height: min(82dvh, 720px); overflow-y: auto; }
+
+@media (max-width: 600px) {
+  body { padding-bottom: calc(88px + var(--safe-b, 0px)); }
+  .head > .wrap, main.wrap { padding-left: 12px; padding-right: 12px; }
+  .bar { gap: 6px; }
+  .ring { flex-basis: 38px; width: 38px; height: 38px; }
+  .icon-btn { flex-basis: 36px; width: 36px; min-width: 36px; height: 38px; }
+  .search { height: 48px; }
+  .chips { width: calc(100% + 24px); max-width: calc(100% + 24px); margin-left: -12px; margin-right: -12px; padding-left: 12px; padding-right: 12px; }
+  .list { gap: 10px; }
+  .card { padding: 13px; border-radius: 17px; }
+  .acts { grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, .7fr)); gap: 5px; }
+  .btn { min-height: 46px; font-size: clamp(10px, 2.9vw, 12px); }
+  .btn.call { font-size: clamp(12px, 3.4vw, 14px); }
+  .fab { left: 16px; right: 16px; width: auto; }
+}
+@media (max-width: 360px) {
+  .bar { gap: 4px; }
+  .ring { flex-basis: 34px; width: 34px; height: 34px; }
+  .icon-btn { flex-basis: 32px; width: 32px; min-width: 32px; height: 36px; }
+  .ttl h1 { font-size: 13px; }
+  .acts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .btn.call { grid-column: 1 / -1; }
+}
+@media (min-width: 601px) {
+  .head > .wrap, main.wrap { padding-left: 20px; padding-right: 20px; }
+}
