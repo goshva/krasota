@@ -10,8 +10,8 @@ const COL = {
   result:   'результат',
   lpr:      'лпр',
   note:     'заметка',
-  called:   'звонок',
-  updated:  'обновлено'
+  owner:    'кто занимается',  // было «звонок»
+  sent:     'сайт отправили'   // было «note» (сторона · округ)
 };
 
 /* ---------- GET: отдаём все строки как JSON(P) ---------- */
@@ -41,7 +41,13 @@ function doGet(e) {
 /* ---------- POST: пишем результат/заметку/ЛПР/звонок ---------- */
 function doPost(e) {
   try {
-    const body = JSON.parse(e.postData.contents);
+    // проверка тела запроса до любой логики
+    const raw = e && e.postData && e.postData.contents;
+    if (!raw) return out({ error: 'Пустой запрос' }, e);
+    let body;
+    try { body = JSON.parse(raw); } catch (err) { return out({ error: 'Некорректный JSON' }, e); }
+    if (!body || typeof body !== 'object' || !body.key) return out({ error: 'Нет ключа строки' }, e);
+
     const sh = getSheet(body.sheet);
     if (!sh) return out({ error: 'Лист не найден' }, e);
 
@@ -54,7 +60,7 @@ function doPost(e) {
     if (iSite < 0) return out({ error: 'Нет колонки «сайт»' }, e);
 
     // авто-создание всех недостающих колонок (включая лпр и звонок)
-    const need = [COL.result, COL.note, COL.lpr, COL.called, COL.updated];
+    const need = [COL.result, COL.note, COL.lpr, COL.owner, COL.sent];
     let added = false;
     need.forEach(name => {
       if (headers.indexOf(name) < 0) {
@@ -67,22 +73,27 @@ function doPost(e) {
 
     const idx = name => headers.indexOf(name) + 1;
 
-    // ищем строку по ключу (домен+путь, без параметров)
+    // ищем строку по ключу (домен+путь, без www/параметров); запасной вариант — только домен
     const key = normalizeKey(body.key);
-    for (let r = 1; r < values.length; r++) {
-      if (normalizeKey(values[r][iSite]) === key) {
-        const row = r + 1;
-        if (body.result   !== undefined) sh.getRange(row, idx(COL.result)).setValue(body.result   || '');
-        if (body.note     !== undefined) sh.getRange(row, idx(COL.note)).setValue(body.note       || '');
-        if (body.lpr      !== undefined) sh.getRange(row, idx(COL.lpr)).setValue(body.lpr         || '');
-        if (body.calledAt) {
-          sh.getRange(row, idx(COL.called)).setValue(new Date(body.calledAt));
-        }
-        sh.getRange(row, idx(COL.updated)).setValue(new Date());
-        return out({ ok: true, row }, e);
-      }
+    let r = values.findIndex((v, i) => i > 0 && normalizeKey(v[iSite]) === key);
+    if (r < 0) {
+      const host = key.split('/')[0];
+      const byHost = values.map((v, i) => i > 0 && normalizeKey(v[iSite]).split('/')[0] === host ? i : -1).filter(i => i > 0);
+      if (byHost.length === 1) r = byHost[0];      // домен однозначный — берём его
     }
-    return out({ error: 'Строка не найдена: ' + key }, e);
+    if (r < 1) return out({ error: 'Строка не найдена: ' + key }, e);
+
+    // пакетная запись: собираем изменённые поля и пишем одним setValues
+    const fields = { result: COL.result, note: COL.note, lpr: COL.lpr, owner: COL.owner, sent: COL.sent };
+    const cols = Object.keys(fields).filter(f => body[f] !== undefined).map(f => [idx(fields[f]), body[f] == null ? '' : String(body[f])]);
+    if (cols.length) {
+      const c0 = Math.min.apply(null, cols.map(c => c[0])), c1 = Math.max.apply(null, cols.map(c => c[0]));
+      const rowVals = values[r].slice(c0 - 1, c1);
+      while (rowVals.length < c1 - c0 + 1) rowVals.push('');
+      cols.forEach(([c, v]) => { rowVals[c - c0] = v; });
+      sh.getRange(r + 1, c0, 1, rowVals.length).setValues([rowVals]);
+    }
+    return out({ ok: true, row: r + 1 }, e);
   } catch (err) {
     return out({ error: String(err) }, e);
   }
@@ -98,7 +109,7 @@ function getSheet(name) {
 function normalizeKey(url) {
   // в Apps Script нет URL(), разбираем вручную: домен + путь без параметров
   let s = String(url || '').trim().toLowerCase();
-  s = s.replace(/^https?:\/\//, '').replace(/[?#].*$/, '').replace(/\/+$/, '');
+  s = s.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/[?#].*$/, '').replace(/\/+$/, '');
   return s;
 }
 
@@ -133,16 +144,19 @@ const TAB_COLORS = {
 const HEAD_NOTES = {
   'key': 'Ключ строки (ссылка без https). Нужен сайту, не менять.',
   'name': 'Название', 'category': 'Категория', 'address': 'Адрес', 'phones': 'Телефоны',
-  'note': 'Сторона · округ Москвы', 'url': 'Ссылка на карточку / сайт',
+  'url': 'Ссылка на карточку / сайт',
   'результат': 'Статус звонка: Не взяли / Перезвонить / Интерес / Отказ',
   'заметка': 'Заметка с сайта-обзвонника (и отметки «WhatsApp: … 16.11»)',
-  'лпр': 'Кто принимает решение', 'звонок': 'Когда звонили', 'обновлено': 'Когда меняли строку'
+  'лпр': 'Кто принимает решение',
+  'кто занимается': 'Кто ведёт этот салон',
+  'сайт отправили': 'Какой сайт-пример отправили (ссылка)'
 };
 
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('Обзвон')
     .addItem('Оформить все листы', 'formatAll')
     .addItem('Оформить текущий лист', 'formatCurrent')
+    .addItem('Обновить колонки (звонок → кто занимается)', 'migrateColumns')
     .addToUi();
 }
 
@@ -152,6 +166,31 @@ function formatAll() {
   ss.toast('Все листы оформлены', 'Обзвон', 4);
 }
 function formatCurrent() { formatSheet(SpreadsheetApp.getActiveSheet()); }
+
+// разово: «звонок» → «кто занимается», «note» → «сайт отправили» (стираются только даты), «обновлено» удаляется
+function migrateColumns() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  ss.getSheets().filter(sh => isCallSheet_(sh)).forEach(sh => {
+    const head = () => sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(h => String(h).trim());
+    const rename = (from, to) => {
+      const c = head().indexOf(from) + 1;
+      if (!c || head().indexOf(to) >= 0) return;
+      sh.getRange(1, c).setValue(to).clearNote();
+      // чистим только даты (старые отметки «когда звонили»); текст — например, имя менеджера — оставляем
+      const n = sh.getLastRow() - 1;
+      if (n > 0) {
+        const rng = sh.getRange(2, c, n, 1);
+        rng.setValues(rng.getValues().map(([v]) => [v instanceof Date ? '' : v]));
+      }
+    };
+    rename('звонок', COL.owner);
+    rename('note', COL.sent);
+    const u = head().indexOf('обновлено') + 1;
+    if (u) sh.deleteColumn(u);
+    formatSheet(sh);
+  });
+  ss.toast('Колонки обновлены', 'Обзвон', 4);
+}
 
 // лист обзвона = есть колонка key/url и phones
 function isCallSheet_(sh) {
@@ -165,7 +204,7 @@ function formatSheet(sh) {
   const head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(h => String(h).trim());
   // во 2-й колонке стоял второй «key» с названием — это «name»
   if (head[0] === 'key' && head[1] === 'key') { sh.getRange(1, 2).setValue('name'); head[1] = 'name'; }
-  [COL.result, COL.note, COL.lpr, COL.called, COL.updated].forEach(name => {
+  [COL.result, COL.note, COL.lpr, COL.owner, COL.sent].forEach(name => {
     if (head.indexOf(name) < 0) { head.push(name); sh.getRange(1, head.length).setValue(name); }
   });
   const cols = head.length;
@@ -197,13 +236,12 @@ function formatSheet(sh) {
   style('category', 150, r => r.setFontColor('#7a7380').setFontSize(10));
   style('address', 280, r => r.setFontColor('#7a7380').setFontSize(10));
   style('phones', 210, r => r.setFontWeight('bold').setFontColor('#1f9d62').setNumberFormat('@'));
-  style('note', 150, r => r.setFontColor('#9a5f08').setFontSize(10));
   style('url', 220, r => r.setFontColor('#b4426b').setFontSize(10));
   style(COL.result, 130, r => r.setHorizontalAlignment('center').setFontWeight('bold'));
   style(COL.lpr, 160);
   style(COL.note, 340, r => r.setFontSize(10));
-  style(COL.called, 110, r => r.setNumberFormat('dd.MM HH:mm').setFontColor('#7a7380').setHorizontalAlignment('center'));
-  style(COL.updated, 110, r => r.setNumberFormat('dd.MM HH:mm').setFontColor('#7a7380').setHorizontalAlignment('center'));
+  style(COL.owner, 150, r => r.setFontWeight('bold').setNumberFormat('@'));
+  style(COL.sent, 240, r => r.setFontColor('#b4426b').setFontSize(10).setNumberFormat('@'));
   ['key', 'phone_1', 'phone_2', 'phone_3'].forEach(name => { const c = idx(name); if (c) sh.hideColumns(c); });
 
   const rules = [];

@@ -33,3 +33,13 @@ $('fab').addEventListener('click',()=>{
 
 $('refreshBtn').addEventListener('click',loadData);
 addEventListener('scroll',()=>$('head').classList.toggle('scrolled',scrollY>4),{passive:true});
+
+/* Кто звонит: спрашиваем один раз, меняется тапом по имени в шапке */
+function showOwner(){ const n=getOwner(); $('ownerName').textContent=n||'Имя'; $('ownerBtn').classList.toggle('empty',!n); }
+function askOwner(){
+  const v=prompt('Как вас зовут? Имя попадёт в колонку «кто занимается».', getOwner());
+  if(v!==null){ setOwner(v); showOwner(); }
+}
+$('ownerBtn').addEventListener('click',askOwner);
+showOwner();
+if(!getOwner()) setTimeout(askOwner,600);

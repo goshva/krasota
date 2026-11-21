@@ -19,7 +19,7 @@ async function flushOutbox(){
       sheet,
       result:   patch.result,
       note:     patch.note,
-      calledAt: patch.calledAt
+      owner:    (typeof getOwner==='function'&&getOwner())||undefined  // пусто — не трогаем колонку
     });
     try{
       const blob=new Blob([body],{type:'text/plain;charset=UTF-8'});

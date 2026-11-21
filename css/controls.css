@@ -34,3 +34,14 @@
   .btn.call{font-size:13px}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* ---------- кто звонит ---------- */
+.owner-btn{display:flex;align-items:center;gap:6px;height:44px;max-width:34vw;padding:0 12px;border-radius:14px;border:1px solid var(--line);
+  background:var(--surface);color:var(--text);font:600 13px/1 Manrope,sans-serif;cursor:pointer;flex-shrink:1;min-width:0}
+.owner-btn svg{width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2}
+.owner-btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.owner-btn.empty{color:var(--amber);border-color:var(--amber)}
+
+/* ---------- мягкая смена значений ---------- */
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.changed{animation:fadeUp .4s ease-out both}
+@media (prefers-reduced-motion:reduce){.changed{animation:none}}

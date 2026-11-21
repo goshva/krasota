@@ -30,3 +30,8 @@ function saveItemsCache(){
 function clearItemsCache(){
   try { localStorage.removeItem(LS_ITEMS_KEY); } catch(e) {}
 }
+
+/* Имя менеджера → колонка «кто занимается» */
+const LS_OWNER_KEY='krasota_owner';
+function getOwner(){ try{ return (localStorage.getItem(LS_OWNER_KEY)||'').trim(); }catch(e){ return ''; } }
+function setOwner(v){ try{ localStorage.setItem(LS_OWNER_KEY,String(v||'').trim()); }catch(e){} }

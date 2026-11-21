@@ -69,7 +69,8 @@ function passes(it){
 function counts(){
   const n={all:items.length,left:0,callback:0,noanswer:0,interest:0,refused:0,nophone:0};
   items.forEach(it=>{const s=statusOf(it);if(!s)n.left++;else n[s]++;if(!it.phones.length)n.nophone++});
-  for(const k in n)$('n-'+k).textContent=n[k];
+  for(const k in n){ const el=$('n-'+k); if(el.textContent!==String(n[k])){ el.textContent=n[k]; if(counts.ready)bump(el); } }
+  if(items.length)counts.ready=true;
   const doneN=items.length-n.left;
   const pct=items.length?Math.round(doneN/items.length*100):0;
   $('ringFg').style.strokeDashoffset=125.66*(1-pct/100);
@@ -156,6 +157,7 @@ function render(noAnim){
   $('list').innerHTML=list.length?list.map(cardHTML).join('')
     :`<div class="empty">${IC.empty}<div>${query?'Ничего не найдено':'Здесь пока пусто'}</div></div>`;
   $('list').querySelectorAll('.note').forEach(autosize);
+  markChanged();
   if (noAnim) {
     $('list').querySelectorAll('.card').forEach(c=>{c.style.animation='none'});
   }
@@ -166,3 +168,19 @@ function render(noAnim){
 
 function nextItem(){return items.filter(it=>it.phones.length&&!statusOf(it)).sort((a,b)=>a.i-b.i)[0]}
 function autosize(t){t.style.height='auto';t.style.height=Math.min(t.scrollHeight,160)+'px'}
+
+/* Плавная смена значений: прошлые статусы храним в localStorage,
+   если статус карточки изменился — мягкий fade-up у ярлыка (≈400 мс) */
+const LS_PREV_KEY='krasota_prev_status';
+function bump(el){ el.classList.remove('changed'); void el.offsetWidth; el.classList.add('changed'); }
+function markChanged(){
+  let prev={}; try{ prev=JSON.parse(localStorage.getItem(LS_PREV_KEY))||{}; }catch(e){}
+  const first=!Object.keys(prev).length;
+  const now={};
+  items.forEach(it=>{ now[it.id]=statusOf(it); });
+  if(!first) document.querySelectorAll('#list .card').forEach(c=>{
+    const id=c.dataset.id;
+    if(id in prev && prev[id]!==now[id]){ const t=c.querySelector('.tag'); if(t) bump(t); }
+  });
+  try{ localStorage.setItem(LS_PREV_KEY,JSON.stringify(now)); }catch(e){}
+}

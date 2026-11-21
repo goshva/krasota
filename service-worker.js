@@ -1,5 +1,5 @@
 /* Krasota PWA service worker — version is synchronized with manifest.json. */
-const VERSION = 6;
+const VERSION = 7;
 const CACHE_NAME = 'krasota-v' + VERSION;
 const CACHE_PREFIX = 'krasota-';
 const ASSETS = [
